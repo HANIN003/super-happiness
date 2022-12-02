@@ -10,66 +10,51 @@ app.use(express.json());
 app.use(express.static("public"));
 const notes = require("./db/db.json");
 
-// Routes
-app.get("/notes", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/notes.html"));
+app.post('/api/notes', (req, res) => {
+  fs.readFile('./db/db.json', 'utf8', (err, data) => {
+    if (err) throw err;
+    var notes = JSON.parse(data);
+    let userNote = req.body;
+    userNote.id = uuidv4();
+    notes.push(userNote);
+  fs.writeFile('./db/db.json', JSON.stringify(notes), (err, data) => {
+      res.json(userNote);
+  });
+  }); 
 });
 
-app.get("/api/notes", (req, res) => {
-  fs.readFile("db/db.json", "utf8", function (err, data) {
-    if (err) {
-      console.log(err);
-      return;
-    }
+app.delete('/api/notes/:id', (req, res) => {
+  fs.readFile('./db/db.json', 'utf8', (err, data) => {
+    if (err) throw err;
+    let notes = JSON.parse(data);
+    const newNotes = notes.filter(note => note.id !== parseInt(req.params.id));
+  
+  fs.writeFile('./db/db.json', JSON.stringify(newNotes), (err, data) => {
+    res.json({msg: 'successfully'});
+  });
+});
+});
+
+app.get('api/notes/:id', (req, res) =>{
+  res.json(notes[req.params.id]);
+});
+
+app.get('/api/notes', (req, res) => {
+  fs.readFile('./db/db.json', 'utf8', (err, data) => {
+    if (err) throw err;
+    var notes = JSON.parse(data);
     res.json(notes);
   });
 });
 
-// Create new note
-app.post("/api/notes", (req, res) => {
-  const newNote = {
-    id: uuidv4(),
-    title: req.body.title,
-    text: req.body.text,
-  };
-  console.log(typeof notes);
-  notes.push(newNote);
-  const stringifyNote = JSON.stringify(notes);
-  res.json(notes);
-  fs.writeFile("db/db.json", stringifyNote, (err) => {
-    if (err) console.log(err);
-    else {
-      console.log("Note successfully saved to db.json");
-    }
-  });
+app.get('/notes', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/notes.html'))
 });
 
-// Delete note
-app.delete("/api/notes/:id", (req, res) => {
-  let noteID = req.params.id;
-  fs.readFile("db/db.json", "utf8", function (err, data) {
-    let updatedNotes = JSON.parse(data).filter((note) => {
-      console.log("note.id", note.id);
-      console.log("noteID", noteID);
-      return note.id !== noteID;
-    });
-    notes = updatedNotes;
-    const stringifyNote = JSON.stringify(updatedNotes);
-    fs.writeFile("db/db.json", stringifyNote, (err) => {
-      if (err) console.log(err);
-      else {
-        console.log("Note successfully deleted from db.json");
-      }
-    });
-    res.json(stringifyNote);
-  });
-});
-
-// Catch all error route
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
-});
+app.get('*', (req, res) => {
+   res.sendFile(path.join(__dirname, 'public/index.html'));
+});   
 
 app.listen(PORT, () => {
-  console.log(`App listening on PORT ${PORT}`);
+    console.log(`App listening on PORT: ${PORT}`);
 });
